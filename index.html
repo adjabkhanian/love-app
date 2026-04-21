@@ -7,6 +7,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#090912" />
   <title>Для тебя</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+
   <style>
     :root{
       --bg:#090912;
@@ -561,28 +564,60 @@
       color:var(--muted);
     }
 
+    .hidden-step{
+      display:none;
+    }
+
+    .qr-video{
+      width:100%;
+      border-radius:24px;
+      margin-top:12px;
+      background:#000;
+      border:1px solid rgba(255,255,255,.10);
+      min-height:240px;
+      object-fit:cover;
+    }
+
+    .hidden-canvas{
+      display:none;
+    }
+
+    .pin-box{
+      margin-top:14px;
+    }
+
+    .pin-success{
+      margin-top:14px;
+      padding:14px;
+      border-radius:18px;
+      background:rgba(184,255,213,.08);
+      border:1px solid rgba(184,255,213,.25);
+      color:var(--text);
+      display:none;
+    }
+
+    .dev-note{
+      margin-top:14px;
+      font-size:11px;
+      color:rgba(255,255,255,.45);
+    }
+
     @media (max-width: 420px){
-      .countdown-wrap{
-        gap:8px;
-      }
-      .count-item{
-        padding:14px 6px;
-      }
-      .count-num{
-        font-size:24px;
-      }
+      .countdown-wrap{gap:8px;}
+      .count-item{padding:14px 6px;}
+      .count-num{font-size:24px;}
     }
   </style>
 </head>
 <body>
   <div id="lockScreen">
     <div class="lock-bg"></div>
-    <div class="lock-content">
+
+    <div class="lock-content" id="countdownStep">
       <div class="lock-pill">Откроется в особенный момент</div>
       <h1 class="lock-title">Для одного очень важного человека</h1>
       <p class="lock-text">
-        Иногда самые важные вещи должны открываться не сразу.
-        Осталось совсем немного.
+        Некоторые вещи хочется открыть не раньше, а вовремя.
       </p>
 
       <div class="countdown-wrap">
@@ -605,7 +640,27 @@
       </div>
 
       <div class="lock-date">13 мая • 00:00 • Москва</div>
-      <div class="lock-note" id="lockNote">Таймер идёт...</div>
+      <div class="lock-note" id="lockNote">Откроется автоматически</div>
+      <div class="dev-note" id="devNote"></div>
+    </div>
+
+    <div class="lock-content hidden-step" id="qrStep">
+      <div class="lock-pill">Шаг 1</div>
+      <h1 class="lock-title">Сначала нужен подарок</h1>
+      <p class="lock-text">
+        Чтобы открыть дальше, отсканируй QR-код, который находится в подарке.
+      </p>
+
+      <video id="qrVideo" autoplay playsinline muted class="qr-video"></video>
+      <canvas id="qrCanvas" class="hidden-canvas"></canvas>
+
+      <div class="lock-note" id="qrStatus">Нажми кнопку ниже и наведи камеру на QR</div>
+
+      <div class="buttons" style="margin-top:16px">
+        <button class="primary" onclick="startQrScanner()">Сканировать QR</button>
+      </div>
+
+      <div class="dev-note" id="devQrNote"></div>
     </div>
   </div>
 
@@ -807,26 +862,29 @@
 
       <section class="screen" id="screen-7">
         <div class="top">
-          <span>Final Letter</span>
+          <span>Final Step</span>
           <span>private</span>
         </div>
 
         <div class="hero" style="min-height:auto; padding-top:10px">
-          <span class="pill">Личное</span>
-          <h2 style="margin-top:14px">Я долго думал, как сказать это достойно тебя</h2>
+          <span class="pill">Последний шаг</span>
+          <h2 style="margin-top:14px">Теперь нужен PIN-код</h2>
 
           <div class="final-box" style="margin-top:10px">
-            <p>Не банально. Не сухо. Не двумя словами в лоб.</p>
-            <p>Мне очень хорошо рядом с тобой. Мне нравится проводить с тобой время почти каждый день. Мне нравится, каким я становлюсь рядом с тобой.</p>
-            <p>И чем дальше, тем яснее я понимаю, что это для меня не просто симпатия и не просто привычка быть рядом.</p>
-            <p style="color:var(--text); font-weight:800; margin-top:18px; font-size:18px">Поэтому я хочу сказать это честно:</p>
-            <div class="final-words">у меня к тебе чувства</div>
-            <p>И если ещё честнее — очень тёплые, очень настоящие и очень сильные.</p>
-            <p style="font-weight:700; color:var(--text); margin-top:16px">С днём рождения, самая милая девочка.</p>
-          </div>
+            <p>Если подарок уже у тебя, значит ты найдёшь последний код.</p>
+            <p>Введи PIN, который спрятан в том, что я подарил тебе раньше.</p>
 
-          <div class="buttons">
-            <button class="primary" id="finishBtn" onclick="tapFeedback(this); notifyFinish()">Я дочитала</button>
+            <div class="pin-box">
+              <input class="input" id="pinInput" placeholder="Введите PIN-код" />
+            </div>
+
+            <div class="buttons">
+              <button class="primary" onclick="tapFeedback(this); checkPin()">Открыть дальше</button>
+            </div>
+
+            <div class="pin-success" id="pinSuccess">
+              Открой дверь — там тебя ждёт сюрприз 💌
+            </div>
           </div>
 
           <div class="finish-status" id="finishStatus">Сделано специально к 13 мая</div>
@@ -837,6 +895,20 @@
 
 <script>
   let audioCtx = null;
+  let qrStream = null;
+  let qrScanLoopRunning = false;
+  let constellationReady = false;
+  let activeCount = 0;
+  let rosesBuilt = false;
+
+  const MOSCOW_UNLOCK_ISO = '2026-05-13T00:00:00+03:00';
+  const EXPECTED_QR_TEXT = 'LOVE13MAY';
+  const EXPECTED_PIN = '0903';
+  const ADMIN_PREVIEW_KEY = 'hovik-preview-13';
+
+  const starPositions = [
+    [18,72],[31,58],[45,46],[60,35],[74,28],[83,38],[73,52],[59,64]
+  ];
 
   function ensureAudio() {
     if (!audioCtx) {
@@ -977,12 +1049,6 @@
     haptic([18,40,18]);
   }
 
-  let constellationReady = false;
-  const starPositions = [
-    [18,72],[31,58],[45,46],[60,35],[74,28],[83,38],[73,52],[59,64]
-  ];
-  let activeCount = 0;
-
   function initConstellation(){
     if(constellationReady) return;
     constellationReady = true;
@@ -1018,7 +1084,6 @@
     }
   }
 
-  let rosesBuilt = false;
   function buildRoses(){
     if(rosesBuilt) return;
     rosesBuilt = true;
@@ -1031,43 +1096,10 @@
     }
   }
 
-  async function notifyFinish(){
-    const btn = document.getElementById('finishBtn');
+  function notifyFinish(){
     const status = document.getElementById('finishStatus');
-
-    btn.disabled = true;
-    btn.textContent = 'Отправляю...';
-    status.textContent = '...';
-
-    try {
-      const response = await fetch('/.netlify/functions/notify-finish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'finished',
-          page: 'screen-7',
-          finishedAt: new Date().toISOString()
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Ошибка отправки');
-      }
-
-      playClickSound('success');
-      petalBurst();
-      status.textContent = '💌';
-      btn.textContent = 'Отправлено';
-    } catch (error) {
-      console.error(error);
-      playClickSound('magic');
-      status.textContent = 'Если что, я всё равно дочитала 💌';
-      btn.textContent = 'Повторить';
-      btn.disabled = false;
-    }
+    if (status) status.textContent = 'Последняя дверь открыта';
   }
-
-  const MOSCOW_UNLOCK_ISO = '2026-05-13T00:00:00+03:00';
 
   function pad(num) {
     return String(num).padStart(2, '0');
@@ -1075,15 +1107,39 @@
 
   function isPreviewMode() {
     const params = new URLSearchParams(window.location.search);
-    return params.get('preview') === '1';
+    return params.get('admin') === ADMIN_PREVIEW_KEY;
+  }
+
+  function showQrStep() {
+    const countdownStep = document.getElementById('countdownStep');
+    const qrStep = document.getElementById('qrStep');
+
+    if (countdownStep) countdownStep.classList.add('hidden-step');
+    if (qrStep) qrStep.classList.remove('hidden-step');
+
+    playClickSound('success');
+    petalBurst();
+  }
+
+  function unlockMainApp() {
+    const lockScreen = document.getElementById('lockScreen');
+    if (lockScreen) lockScreen.classList.add('hidden');
+    stopQrScanner();
+    playClickSound('success');
+    petalBurst();
   }
 
   function updateCountdown() {
     const lockScreen = document.getElementById('lockScreen');
     if (!lockScreen) return;
 
+    const devNote = document.getElementById('devNote');
+    const devQrNote = document.getElementById('devQrNote');
+
     if (isPreviewMode()) {
-      lockScreen.classList.add('hidden');
+      showQrStep();
+      if (devNote) devNote.textContent = 'Режим проверки включён';
+      if (devQrNote) devQrNote.textContent = 'Для теста QR должен содержать: ' + EXPECTED_QR_TEXT;
       return;
     }
 
@@ -1092,9 +1148,7 @@
     const diff = unlockTime - now;
 
     if (diff <= 0) {
-      lockScreen.classList.add('hidden');
-      playClickSound('success');
-      petalBurst();
+      showQrStep();
       return;
     }
 
@@ -1112,6 +1166,87 @@
     const lockNote = document.getElementById('lockNote');
     if (lockNote) {
       lockNote.textContent = 'Откроется автоматически';
+    }
+  }
+
+  async function startQrScanner() {
+    const video = document.getElementById('qrVideo');
+    const status = document.getElementById('qrStatus');
+
+    try {
+      qrStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+
+      video.srcObject = qrStream;
+      qrScanLoopRunning = true;
+      status.textContent = 'Наведи камеру на QR-код';
+      scanQrFrame();
+    } catch (e) {
+      console.error(e);
+      status.textContent = 'Не удалось открыть камеру. Попробуй Safari и доступ к камере.';
+    }
+  }
+
+  function stopQrScanner() {
+    qrScanLoopRunning = false;
+
+    if (qrStream) {
+      qrStream.getTracks().forEach(track => track.stop());
+      qrStream = null;
+    }
+
+    const video = document.getElementById('qrVideo');
+    if (video) video.srcObject = null;
+  }
+
+  function scanQrFrame() {
+    if (!qrScanLoopRunning) return;
+
+    const video = document.getElementById('qrVideo');
+    const canvas = document.getElementById('qrCanvas');
+    const ctx = canvas.getContext('2d');
+    const status = document.getElementById('qrStatus');
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+      if (code && code.data) {
+        if (code.data.trim() === EXPECTED_QR_TEXT) {
+          status.textContent = 'QR принят 💌';
+          unlockMainApp();
+          return;
+        } else {
+          status.textContent = 'Это не тот QR-код';
+        }
+      }
+    }
+
+    requestAnimationFrame(scanQrFrame);
+  }
+
+  function checkPin() {
+    const pinInput = document.getElementById('pinInput');
+    const pinSuccess = document.getElementById('pinSuccess');
+    const value = pinInput.value.trim();
+
+    if (value === EXPECTED_PIN) {
+      playClickSound('success');
+      petalBurst();
+      pinSuccess.style.display = 'block';
+      document.getElementById('finishStatus').textContent = 'Открой дверь — там тебя ждёт сюрприз 💌';
+      notifyFinish();
+    } else {
+      shake();
+      playClickSound('magic');
+      pinSuccess.style.display = 'none';
+      alert('Неверный PIN-код');
     }
   }
 
